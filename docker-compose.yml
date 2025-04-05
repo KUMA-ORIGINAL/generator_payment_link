@@ -1,0 +1,16 @@
+
+services:
+  backend:
+    build:
+      context: backend
+    env_file:
+      - .env.dev
+    restart: unless-stopped
+    volumes:
+      - ./backend/app:/app
+      - static_volume:/app/static
+    ports:
+      - '8000:8000'
+
+volumes:
+  static_volume:
