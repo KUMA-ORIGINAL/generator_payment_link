@@ -7,6 +7,8 @@
 .env.dev
 .env.prod
 
+#mosquitto
+mosquitto/log/mosquitto.log
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
