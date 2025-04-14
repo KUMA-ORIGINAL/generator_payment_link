@@ -61,6 +61,7 @@ class Settings(BaseSettings):
     logging: LoggingConfig = LoggingConfig()
     api: ApiPrefix = ApiPrefix()
     docs: DocsConfig = DocsConfig()
+    API_KEY_2GIS: str
 
 
 settings = Settings()
