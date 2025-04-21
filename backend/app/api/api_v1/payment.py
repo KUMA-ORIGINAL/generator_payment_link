@@ -18,7 +18,7 @@ async def generate_payment_link_async(
         "amount": amount,
         "transactionID": transaction_id,
         "comment": comment,
-        "redirectURL": redirect_url
+        "redirectUrl": redirect_url
     }
 
     headers = {
