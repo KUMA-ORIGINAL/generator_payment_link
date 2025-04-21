@@ -33,7 +33,7 @@ async def generate_payment_link_async(
                 "https://openbanking-api.bakai.kg/api/PayLink/CreatePayLink",
                 json=payload,
                 headers=headers,
-                timeout=10.0
+                timeout=5.0
             )
 
         logger.info(f"[BANK_API] status={response.status_code}, response={response.text}")
