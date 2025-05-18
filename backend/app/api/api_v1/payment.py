@@ -8,7 +8,7 @@ logging.basicConfig(level=logging.INFO)
 
 
 async def generate_payment_link_async(
-    amount: int,
+    amount: str,
     transaction_id: str,
     comment: str,
     redirect_url: str,
@@ -52,7 +52,7 @@ router = APIRouter(tags=["payments"])
 
 
 class PaymentRequest(BaseModel):
-    amount: int
+    amount: str
     transaction_id: str
     comment: str
     redirect_url: str
