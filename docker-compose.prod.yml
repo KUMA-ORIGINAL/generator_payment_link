@@ -13,6 +13,18 @@ services:
       - ./backend/app:/app
       - static_volume:/app/static
 
+  health-checker:
+    build:
+      context: ./checker
+    container_name: checker
+    restart: unless-stopped
+    volumes:
+      - ./checker:/checker
+    env_file:
+      - ./checker/.env
+    depends_on:
+      - backend
+
   nginx:
     build: nginx
     env_file: .env.prod
