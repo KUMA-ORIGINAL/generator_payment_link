@@ -12,6 +12,18 @@ services:
     ports:
       - '8000:8000'
 
+  health-checker:
+    build:
+      context: ./checker
+    container_name: checker
+    restart: unless-stopped
+    volumes:
+      - ./checker:/checker
+    env_file:
+      - ./checker/.env
+    depends_on:
+      - backend
+
   mosquitto:
     image: eclipse-mosquitto:latest
     container_name: mosquitto
