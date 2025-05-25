@@ -45,19 +45,34 @@ def check_api():
     }
 
     try:
-        response = httpx.post(PAYMENT_API_URL, json=payload)
-        data = response.json()
+        # Указываем таймаут (в секундах)
+        response = httpx.post(PAYMENT_API_URL, json=payload, timeout=5.0)
+        response.raise_for_status()  # выбросит исключение при 4xx/5xx
 
-        if response.status_code != 200 or "pay_url" not in data:
-            msg = f"❗ Ошибка API: {response.status_code}, ответ: {data}"
+        data = response.json()
+        pay_url = data.get("pay_url")
+
+        if not pay_url:
+            msg = f"❗ API ответ без 'pay_url'. Код: {response.status_code}, ответ: {data}"
             send_telegram_message(msg)
             logging.warning(msg)
         else:
-            logging.info(f"✅ API работает. Ссылка: {data['pay_url']}")
-    except Exception as e:
-        msg = f"❌ Ошибка подключения к API: {e}"
+            logging.info(f"✅ API работает. Ссылка: {pay_url}")
+
+    except httpx.TimeoutException:
+        msg = "❌ Ошибка подключения к API: превышено время ожидания (timeout)"
         send_telegram_message(msg)
         logging.error(msg)
+
+    except httpx.RequestError as e:
+        msg = f"❌ Ошибка подключения к API: {str(e)}"
+        send_telegram_message(msg)
+        logging.error(msg)
+
+    except Exception as e:
+        msg = f"❌ Непредвиденная ошибка при проверке API: {str(e)}"
+        send_telegram_message(msg)
+        logging.exception(msg)
 
 
 if __name__ == "__main__":
