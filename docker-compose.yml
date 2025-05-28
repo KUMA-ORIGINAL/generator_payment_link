@@ -18,7 +18,7 @@ services:
     container_name: checker
     restart: unless-stopped
     volumes:
-      - ./checker:/checker
+      - ./checker:/app
     env_file:
       - ./checker/.env
     depends_on:
