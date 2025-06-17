@@ -23,6 +23,7 @@ TELEGRAM_TOPIC_ID = os.getenv("TELEGRAM_TOPIC_ID")
 PAYMENT_API_TOKEN = os.getenv("PAYMENT_API_TOKEN")
 REDIRECT_URL = os.getenv("REDIRECT_URL", "https://example.com/success")
 
+api_is_broken = False
 
 def send_telegram_message(message):
     try:
@@ -42,6 +43,7 @@ def send_telegram_message(message):
 
 
 def check_api():
+    global api_is_broken  # чтобы менять глобальное состояние
     transaction_id = str(uuid.uuid4())
     payload = {
         "amount": "100.00",
@@ -50,35 +52,34 @@ def check_api():
         "redirect_url": REDIRECT_URL,
         "token": PAYMENT_API_TOKEN
     }
-
     try:
         response = httpx.post(PAYMENT_API_URL, json=payload, timeout=10)
-        response.raise_for_status()  # выбросит исключение при 4xx/5xx
-
+        response.raise_for_status()
         data = response.json()
         pay_url = data.get("pay_url")
-
         if not pay_url:
             msg = f"[💳 Ошибка платежной ссылки] ❗ API ответ без 'pay_url'. Код: {response.status_code}, ответ: {data}"
-            send_telegram_message(msg)
+            if not api_is_broken:
+                send_telegram_message(msg)
+                api_is_broken = True
             logging.warning(msg)
         else:
-            logging.info(f"✅ API работает. Ссылка: {pay_url}")
+            if api_is_broken:
+                send_telegram_message("[💳 платежная ссылка] ✅ Платежное API восстановилось и работает корректно!")
+                api_is_broken = False
+            logging.info(f"[💳 платежная ссылка] ✅ API работает. Ссылка: {pay_url}")
 
-    except httpx.TimeoutException:
-        msg = "[💳 Ошибка платежной ссылки] ❌ Ошибка подключения к API: превышено время ожидания (timeout)"
-        send_telegram_message(msg)
+    except (httpx.TimeoutException, httpx.RequestError, Exception) as e:
+        if isinstance(e, httpx.TimeoutException):
+            msg = "[💳 Ошибка платежной ссылки] ❌ Ошибка подключения к API: превышено время ожидания (timeout)"
+        elif isinstance(e, httpx.RequestError):
+            msg = f"[💳 Ошибка платежной ссылки] ❌ Ошибка подключения к API: {str(e)}"
+        else:
+            msg = f"[💳 Ошибка платежной ссылки] ❌ Непредвиденная ошибка при проверке API: {str(e)}"
+        if not api_is_broken:
+            send_telegram_message(msg)
+            api_is_broken = True
         logging.error(msg)
-
-    except httpx.RequestError as e:
-        msg = f"[💳 Ошибка платежной ссылки] ❌ Ошибка подключения к API: {str(e)}"
-        send_telegram_message(msg)
-        logging.error(msg)
-
-    except Exception as e:
-        msg = f"[💳 Ошибка платежной ссылки] ❌ Непредвиденная ошибка при проверке API: {str(e)}"
-        send_telegram_message(msg)
-        logging.exception(msg)
 
 
 if __name__ == "__main__":
