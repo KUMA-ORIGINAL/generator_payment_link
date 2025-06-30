@@ -1,14 +1,21 @@
+import asyncio
 import httpx
-import logging
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, HttpUrl
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+router = APIRouter(tags=["payments"])
+
+
+class PaymentRequest(BaseModel):
+    amount: float = Field(gt=0)
+    transaction_id: str
+    comment: str
+    redirect_url: str
+    token: str = Field(min_length=1)
 
 
 async def generate_payment_link_async(
-    amount: str,
+    amount: float,
     transaction_id: str,
     comment: str,
     redirect_url: str,
@@ -20,43 +27,28 @@ async def generate_payment_link_async(
         "comment": comment,
         "redirectURL": redirect_url
     }
-
     headers = {
         "Content-Type": "application/json",
         "Accept": "*/*",
         "Authorization": f"Bearer {token}"
     }
-
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                "https://openbanking-api.bakai.kg/api/PayLink/CreatePayLink",
-                json=payload,
-                headers=headers,
-                timeout=10
-            )
-
-        logger.info(f"[BANK_API] status={response.status_code}, response={response.text}")
-
-        if response.status_code == 200:
-            return response.text.strip()
-
-        logger.error(f"Ошибка внешнего API: {response.text}")
-        return None
-
-    except Exception as e:
-        logger.exception("Ошибка запроса к банку")
-        return None
-
-router = APIRouter(tags=["payments"])
-
-
-class PaymentRequest(BaseModel):
-    amount: str
-    transaction_id: str
-    comment: str
-    redirect_url: str
-    token: str
+    url = "https://openbanking-api.bakai.kg/api/PayLink/CreatePayLink"
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                response = await client.post(url, json=payload, headers=headers)
+            if response.status_code == 200 and response.text.strip().startswith("http"):
+                return response.text.strip()
+            # Если банк ответил ошибкой — не повторять
+            break
+        except (httpx.ConnectError, httpx.ConnectTimeout) as e:
+            if attempt < max_retries - 1:
+                await asyncio.sleep(2)
+            continue
+        except Exception as e:
+            break
+    return None
 
 
 @router.post("/make-payment-link/")
@@ -68,7 +60,9 @@ async def make_payment_link(data: PaymentRequest):
         redirect_url=data.redirect_url,
         token=data.token
     )
-
     if link:
         return {"pay_url": link}
-    raise HTTPException(status_code=500, detail="Платёжная ссылка не создана")
+    raise HTTPException(
+        status_code=502,
+        detail="Банк временно недоступен или произошла ошибка связи. Попробуйте ещё раз через пару минут."
+    )
