@@ -36,7 +36,7 @@ async def generate_payment_link_async(
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            async with httpx.AsyncClient(timeout=10) as client:
+            async with httpx.AsyncClient(timeout=20) as client:
                 response = await client.post(url, json=payload, headers=headers)
             if response.status_code == 200 and response.text.strip().startswith("http"):
                 return response.text.strip()
