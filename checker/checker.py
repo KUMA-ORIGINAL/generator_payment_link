@@ -39,7 +39,7 @@ def send_telegram_message(message, retries=3, delay=3):
             if TELEGRAM_TOPIC_ID:
                 payload["message_thread_id"] = TELEGRAM_TOPIC_ID
 
-            response = httpx.post(url, data=payload, timeout=20)
+            response = httpx.post(url, data=payload, timeout=30)
             response.raise_for_status()
             logging.info("📬 Уведомление отправлено в Telegram")
             return True
