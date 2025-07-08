@@ -68,7 +68,7 @@ def check_api():
         "token": PAYMENT_API_TOKEN
     }
     try:
-        response = httpx.post(PAYMENT_API_URL, json=payload, timeout=10)
+        response = httpx.post(PAYMENT_API_URL, json=payload, timeout=30)
         response.raise_for_status()
         data = response.json()
         pay_url = data.get("pay_url")
