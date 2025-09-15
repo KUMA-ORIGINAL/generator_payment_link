@@ -98,7 +98,6 @@ def check_api():
 
 
 if __name__ == "__main__":
-    global check_interval
     logging.info("⏳ Ожидание запуска backend...")
     time.sleep(10)  # Подождать 10 секунд после старта
     logging.info("🔁 Запуск health-check каждые 5 минут...")
