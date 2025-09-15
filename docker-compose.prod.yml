@@ -44,10 +44,12 @@ services:
     restart: unless-stopped
     ports:
       - "1883:1883"
+      - "8883:8883"              # TLS порт
     volumes:
       - ./mosquitto/config:/mosquitto/config
       - ./mosquitto/data:/mosquitto/data
       - ./mosquitto/log:/mosquitto/log
+      - certs:/etc/letsencrypt:ro
 
 volumes:
   static_volume:
