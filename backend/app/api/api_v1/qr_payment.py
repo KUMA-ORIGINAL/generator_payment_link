@@ -7,7 +7,7 @@ router = APIRouter(tags=["qr-payments"])
 
 
 class QRPaymentRequest(BaseModel):
-    account_number: str = Field(..., regex=r"^124\d+", description="Счёт, начинающийся с 124")
+    account_number: str = Field(..., pattern=r"^124\d+", description="Счёт, начинающийся с 124")
     qr_merchant_id: str = Field(..., max_length=32)
     recipient: str = Field(..., max_length=255)
     amount: float | None = Field(None, gt=0, description="Сумма в тыйынах, >0")
