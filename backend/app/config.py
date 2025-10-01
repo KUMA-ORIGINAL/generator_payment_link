@@ -36,6 +36,7 @@ class GunicornConfig(BaseModel):
 class ApiV1Prefix(BaseModel):
     prefix: str = "/v1"
     payments: str = '/payments'
+    qr_payments: str = '/qr-payments'
 
 
 class ApiPrefix(BaseModel):
