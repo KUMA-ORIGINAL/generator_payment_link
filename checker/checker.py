@@ -1,10 +1,9 @@
-from http.client import responses
-
 import httpx
 import time
 import uuid
 import os
 import logging
+from playwright.sync_api import sync_playwright
 
 # === Настройка логирования ===
 logging.basicConfig(
@@ -61,6 +60,27 @@ def handle_api_error(msg):
     logging.error(msg)
 
 
+def check_link(url: str) -> str:
+    """
+    Проверяет ссылку через httpx и Playwright.
+    Возвращает текст результата ("✅" или "❌").
+    """
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        try:
+            page.goto(url, timeout=30000)
+            page.wait_for_timeout(3000)
+            html = page.content().lower()
+        finally:
+            browser.close()
+
+    if any(substr in html for substr in ["app-not-found", "page not found", "assets/404.svg", "error-404"]):
+        return f"{url}: страница не найдена (SPA 404) ❌"
+
+    return f"{url}: страница открывается ✅"
+
+
 def check_api():
     global api_is_broken, check_interval
     transaction_id = str(uuid.uuid4())
@@ -76,16 +96,32 @@ def check_api():
         response.raise_for_status()
         data = response.json()
         pay_url = data.get("pay_url")
+
         if not pay_url:
             msg = f"[💳 Ошибка платежной ссылки] ❗ API ответ без 'pay_url'. Код: {response.status_code}, ответ: {data}"
             handle_api_error(msg)
-        else:
-            if api_is_broken:
-                send_telegram_message("[💳 платежная ссылка] ✅ Платежное API восстановилось и работает корректно!")
-                api_is_broken = False
-                check_interval = 300  # вернуться к 5 минутам
-                logging.info("⏱ Переключаем health-check обратно на каждые 5 минут")
-            logging.info(f"[💳 платежная ссылка] ✅ API работает. Ссылка: {pay_url}")
+            return
+
+        try:
+            result = check_link(pay_url)
+            logging.info(result)
+
+            if "❌" in result:
+                handle_api_error(f"[💳 Ошибка ссылки] {result}")
+                return
+
+        except Exception as e:
+            handle_api_error(f"[💳 Ошибка проверки ссылки] {e}")
+            return
+
+        if api_is_broken:
+            send_telegram_message("[💳 платежная ссылка] ✅ Платежное API восстановилось и работает корректно!")
+            api_is_broken = False
+            check_interval = 300  # вернуться к 5 минутам
+            logging.info("⏱ Переключаем health-check обратно на каждые 5 минут")
+
+        logging.info(f"[💳 платежная ссылка] ✅ API работает. Ссылка: {pay_url}")
+
     except httpx.HTTPStatusError as e:
         msg = f"[💳 Ошибка платежной ссылки] ❌ API вернул ошибку {e.response.status_code}: {e.response.text}"
         handle_api_error(msg)
