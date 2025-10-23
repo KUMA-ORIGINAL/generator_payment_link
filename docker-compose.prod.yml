@@ -17,7 +17,7 @@ services:
     build:
       context: ./checker
     container_name: checker
-    restart: unless-stopped
+    restart: always
     volumes:
       - ./checker:/app
     env_file:
@@ -28,7 +28,7 @@ services:
   nginx:
     build: nginx
     env_file: .env.prod
-    restart: unless-stopped
+    restart: always
     ports:
       - '80:80'
       - '443:443'
@@ -41,7 +41,7 @@ services:
   mosquitto:
     image: eclipse-mosquitto:latest
     container_name: mosquitto
-    restart: unless-stopped
+    restart: always
     ports:
       - "1883:1883"
       - "8883:8883"              # TLS порт
